@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import { Play, ImageOff } from 'lucide-react';
+import { Play, Dumbbell } from 'lucide-react';
+import { EXERCISE_IMAGES } from '@/data/exerciseImages';
 
 interface GifDemoCardProps {
   gifUrl: string;
@@ -12,67 +13,21 @@ interface GifDemoCardProps {
 }
 
 export default function GifDemoCard({
-  gifUrl,
   demoAltText,
   exerciseName,
   compact = false,
 }: GifDemoCardProps) {
-  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    if (!exerciseName) return;
-
-    // Clear any stale GIF URLs from previous implementation
-    const oldKey = `gif_${exerciseName}`;
-    const stale = localStorage.getItem(oldKey);
-    if (stale?.includes('.gif')) localStorage.removeItem(oldKey);
-
-    const cacheKey = `img_${exerciseName}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      setResolvedUrl(cached);
-      return;
-    }
-
-    // Try static asset first (fast path for local GIFs)
-    if (gifUrl) {
-      fetch(gifUrl, { method: 'HEAD' })
-        .then((r) => {
-          if (r.ok) {
-            localStorage.setItem(cacheKey, gifUrl);
-            setResolvedUrl(gifUrl);
-          } else {
-            fetchFromApi();
-          }
-        })
-        .catch(fetchFromApi);
-    } else {
-      fetchFromApi();
-    }
-
-    function fetchFromApi() {
-      fetch(`/api/gif?name=${encodeURIComponent(exerciseName)}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.gifUrl) {
-            localStorage.setItem(`img_${exerciseName}`, data.gifUrl);
-            setResolvedUrl(data.gifUrl);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [exerciseName, gifUrl]);
-
+  const imageUrl = EXERCISE_IMAGES[exerciseName] ?? null;
   const height = compact ? 'h-36' : 'h-52';
 
-  if (hasError || !resolvedUrl) {
+  if (hasError || !imageUrl) {
     return (
       <div
         className={`${height} rounded-xl bg-[#0f0f0f] border border-white/[0.06] flex flex-col items-center justify-center gap-2 relative overflow-hidden`}
       >
-        {/* Animated diagonal stripes */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -82,17 +37,11 @@ export default function GifDemoCard({
           }}
         />
         <div className="w-10 h-10 rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center">
-          <ImageOff className="w-5 h-5 text-[#3b82f6]/60" />
+          <Dumbbell className="w-5 h-5 text-[#3b82f6]/60" />
         </div>
-        <div className="text-center px-4 relative">
-          <p className="text-[#52525b] text-xs font-medium">Exercise Image Loading…</p>
-          {!compact && (
-            <p className="text-[#3b3b3b] text-xs mt-1">
-              Drop your .gif into{' '}
-              <code className="text-[#52525b]">public/assets/exercises/</code>
-            </p>
-          )}
-        </div>
+        <p className="text-[#52525b] text-xs font-medium relative">
+          {exerciseName}
+        </p>
       </div>
     );
   }
@@ -101,7 +50,6 @@ export default function GifDemoCard({
     <div
       className={`${height} rounded-xl bg-[#0f0f0f] border border-white/[0.06] relative overflow-hidden group`}
     >
-      {/* Loading skeleton */}
       {!isLoaded && (
         <div className="absolute inset-0 bg-[#141414] animate-pulse flex items-center justify-center">
           <Play className="w-8 h-8 text-[#2a2a2a]" />
@@ -109,16 +57,15 @@ export default function GifDemoCard({
       )}
 
       <Image
-        src={resolvedUrl}
+        src={imageUrl}
         alt={demoAltText || exerciseName}
         fill
-        className={`object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`object-cover object-top transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
         sizes="(max-width: 768px) 100vw, 400px"
       />
 
-      {/* Overlay gradient at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0f0f0f]/80 to-transparent pointer-events-none" />
     </div>
   );

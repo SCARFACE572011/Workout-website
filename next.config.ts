@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'wger.de',
-        pathname: '/media/**',
+        hostname: 'upload.wikimedia.org',
+        pathname: '/wikipedia/**',
       },
     ],
   },

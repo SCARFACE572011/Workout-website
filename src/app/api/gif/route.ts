@@ -1,42 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
-  const apiKey = process.env.RAPIDAPI_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ gifUrl: null }, { status: 404 });
-  }
-
   const { searchParams } = new URL(req.url);
   const rawName = searchParams.get('name') || '';
-  // Trim after slash or comma to handle compound exercise names
-  const name = rawName.split(/[/,]/)[0].trim().toLowerCase();
+  const name = rawName.split(/[/,]/)[0].trim();
   if (!name) {
     return NextResponse.json({ gifUrl: null }, { status: 404 });
   }
 
   try {
-    const res = await fetch(
-      `https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(name)}?limit=1&offset=0`,
-      {
-        headers: {
-          'X-RapidAPI-Key': apiKey,
-          'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com',
-        },
-        next: { revalidate: 604800 },
-      }
+    // Step 1: search for the exercise on Wger (free, no API key)
+    const searchRes = await fetch(
+      `https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(name)}&language=english&format=json`,
+      { next: { revalidate: 604800 } }
     );
-
-    if (!res.ok) {
+    if (!searchRes.ok) {
       return NextResponse.json({ gifUrl: null }, { status: 404 });
     }
 
-    const data = await res.json();
-    const gifUrl = Array.isArray(data) && data.length > 0 ? data[0].gifUrl : null;
+    const searchData = await searchRes.json();
+    const suggestions: Array<{ data: { base_id: number } }> = searchData?.suggestions ?? [];
+    if (suggestions.length === 0) {
+      return NextResponse.json({ gifUrl: null }, { status: 404 });
+    }
+
+    const baseId = suggestions[0].data.base_id;
+
+    // Step 2: fetch images for that exercise
+    const imgRes = await fetch(
+      `https://wger.de/api/v2/exerciseimage/?format=json&exercise_base=${baseId}`,
+      { next: { revalidate: 604800 } }
+    );
+    if (!imgRes.ok) {
+      return NextResponse.json({ gifUrl: null }, { status: 404 });
+    }
+
+    const imgData = await imgRes.json();
+    const imageUrl: string | null = imgData?.results?.[0]?.image ?? null;
 
     return NextResponse.json(
-      { gifUrl },
+      { gifUrl: imageUrl },
       {
-        status: gifUrl ? 200 : 404,
+        status: imageUrl ? 200 : 404,
         headers: { 'Cache-Control': 'public, max-age=604800' },
       }
     );

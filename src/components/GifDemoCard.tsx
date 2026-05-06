@@ -24,7 +24,12 @@ export default function GifDemoCard({
   useEffect(() => {
     if (!exerciseName) return;
 
-    const cacheKey = `gif_${exerciseName}`;
+    // Clear any stale GIF URLs from previous implementation
+    const oldKey = `gif_${exerciseName}`;
+    const stale = localStorage.getItem(oldKey);
+    if (stale?.includes('.gif')) localStorage.removeItem(oldKey);
+
+    const cacheKey = `img_${exerciseName}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       setResolvedUrl(cached);
@@ -52,14 +57,11 @@ export default function GifDemoCard({
         .then((r) => r.json())
         .then((data) => {
           if (data?.gifUrl) {
-            localStorage.setItem(cacheKey, data.gifUrl);
+            localStorage.setItem(`img_${exerciseName}`, data.gifUrl);
             setResolvedUrl(data.gifUrl);
           }
-          // else leave resolvedUrl null → placeholder renders
         })
-        .catch(() => {
-          // silent — placeholder renders
-        });
+        .catch(() => {});
     }
   }, [exerciseName, gifUrl]);
 
@@ -83,7 +85,7 @@ export default function GifDemoCard({
           <ImageOff className="w-5 h-5 text-[#3b82f6]/60" />
         </div>
         <div className="text-center px-4 relative">
-          <p className="text-[#52525b] text-xs font-medium">Demo GIF Coming Soon</p>
+          <p className="text-[#52525b] text-xs font-medium">Exercise Image Loading…</p>
           {!compact && (
             <p className="text-[#3b3b3b] text-xs mt-1">
               Drop your .gif into{' '}
@@ -113,7 +115,6 @@ export default function GifDemoCard({
         className={`object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
-        unoptimized
         sizes="(max-width: 768px) 100vw, 400px"
       />
 

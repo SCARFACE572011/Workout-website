@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Timer, Play, Pause, RotateCcw, Plus, Minus } from 'lucide-react';
+import { sendPush } from '@/lib/notifications';
 
 const PRESETS = [30, 45, 60, 90, 120, 180];
 
@@ -48,6 +49,7 @@ export default function RestTimer() {
             } catch {
               // AudioContext not available
             }
+            sendPush('Rest Over — Next Set', 'Your rest period is complete. Start your next set.', '/workout');
             return 0;
           }
           return r - 1;

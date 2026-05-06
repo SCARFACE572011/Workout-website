@@ -10,8 +10,10 @@ import RestTimer from './RestTimer';
 import WorkoutTimer from './WorkoutTimer';
 import CaloriesCalculator from './CaloriesCalculator';
 import LogWorkoutModal from './LogWorkoutModal';
+import NotificationSetup from './NotificationSetup';
 import { getProfile, saveProfile } from '@/lib/storage';
 import { estimateWorkoutCalories } from '@/lib/calculations';
+import { sendPush } from '@/lib/notifications';
 import type { WorkoutDay, Difficulty } from '@/types';
 
 interface Props {
@@ -133,6 +135,7 @@ export default function WorkoutDetailClient({ day }: Props) {
           {/* Left: sticky timers */}
           <div className="lg:col-span-1 flex flex-col gap-4">
             <div className="lg:sticky lg:top-24 flex flex-col gap-4">
+              <NotificationSetup />
               <WorkoutTimer />
               <RestTimer />
               <CaloriesCalculator
@@ -307,7 +310,10 @@ export default function WorkoutDetailClient({ day }: Props) {
           difficulty={difficulty}
           defaultWeight={weight}
           onClose={() => setShowLogModal(false)}
-          onSaved={() => setLogSaved(true)}
+          onSaved={() => {
+            setLogSaved(true);
+            sendPush('Workout Complete 💪', `Day ${day.id}: ${day.name} logged!`, '/progress');
+          }}
         />
       )}
     </div>

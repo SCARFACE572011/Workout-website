@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Play, ImageOff } from 'lucide-react';
 
@@ -17,12 +17,55 @@ export default function GifDemoCard({
   exerciseName,
   compact = false,
 }: GifDemoCardProps) {
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  useEffect(() => {
+    if (!exerciseName) return;
+
+    const cacheKey = `gif_${exerciseName}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setResolvedUrl(cached);
+      return;
+    }
+
+    // Try static asset first (fast path for local GIFs)
+    if (gifUrl) {
+      fetch(gifUrl, { method: 'HEAD' })
+        .then((r) => {
+          if (r.ok) {
+            localStorage.setItem(cacheKey, gifUrl);
+            setResolvedUrl(gifUrl);
+          } else {
+            fetchFromApi();
+          }
+        })
+        .catch(fetchFromApi);
+    } else {
+      fetchFromApi();
+    }
+
+    function fetchFromApi() {
+      fetch(`/api/gif?name=${encodeURIComponent(exerciseName)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.gifUrl) {
+            localStorage.setItem(cacheKey, data.gifUrl);
+            setResolvedUrl(data.gifUrl);
+          }
+          // else leave resolvedUrl null → placeholder renders
+        })
+        .catch(() => {
+          // silent — placeholder renders
+        });
+    }
+  }, [exerciseName, gifUrl]);
+
   const height = compact ? 'h-36' : 'h-52';
 
-  if (hasError || !gifUrl) {
+  if (hasError || !resolvedUrl) {
     return (
       <div
         className={`${height} rounded-xl bg-[#0f0f0f] border border-white/[0.06] flex flex-col items-center justify-center gap-2 relative overflow-hidden`}
@@ -64,13 +107,13 @@ export default function GifDemoCard({
       )}
 
       <Image
-        src={gifUrl}
+        src={resolvedUrl}
         alt={demoAltText || exerciseName}
         fill
         className={`object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
-        unoptimized // GIFs need unoptimized to animate
+        unoptimized
         sizes="(max-width: 768px) 100vw, 400px"
       />
 

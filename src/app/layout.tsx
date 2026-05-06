@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Bebas_Neue, Outfit, DM_Mono } from 'next/font/google';
 import './globals.css';
 import Navigation from '@/components/Navigation';
+import SWRegister from '@/components/SWRegister';
 
 const bebasNeue = Bebas_Neue({
   weight: '400',
@@ -29,6 +30,11 @@ export const metadata: Metadata = {
   description:
     'Lose fat, build muscle, and stay consistent with a simple 3-day gym plan. Back & Biceps, Chest & Shoulders & Triceps, Legs & Cardio.',
   keywords: ['fitness', 'workout', 'strength training', 'fat loss', 'gym program'],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: '3-Day Strength',
+  },
 };
 
 export const viewport: Viewport = {
@@ -48,6 +54,7 @@ export default function RootLayout({
       className={`${bebasNeue.variable} ${outfit.variable} ${dmMono.variable} dark`}
     >
       <body className="min-h-screen flex flex-col bg-[#080808] text-[#f5f5f5] antialiased">
+        <SWRegister />
         <Navigation />
         <main className="flex-1">{children}</main>
         <footer className="border-t border-white/5 py-8 mt-16">
